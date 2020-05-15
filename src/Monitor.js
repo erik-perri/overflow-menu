@@ -5,6 +5,7 @@ export default class Monitor {
    * @param {HTMLElement} overflowMenuItemElement
    * @param {HTMLElement} overflowItemContainerElement
    * @param {Window} [windowElement]
+   * @param {FontFaceSet|null} [documentFonts]
    */
   constructor(
     rootMenuElement,
@@ -12,6 +13,7 @@ export default class Monitor {
     overflowMenuItemElement,
     overflowItemContainerElement,
     windowElement = window,
+    documentFonts = null,
   ) {
     this.rootMenuElement = rootMenuElement;
     this.menuItemSelector = menuItemSelector;
@@ -29,8 +31,13 @@ export default class Monitor {
     }
 
     this.window = windowElement;
+
+    // noinspection JSUnresolvedVariable
+    this.documentFonts = documentFonts || windowElement.document.fonts;
+
     this.refresh = this.refresh.bind(this);
     this.resizeCallback = this.resizeCallback.bind(this);
+    this.headChangesCallback = this.headChangesCallback.bind(this);
   }
 
   /**
@@ -75,7 +82,18 @@ export default class Monitor {
     this.window.addEventListener('DOMContentLoaded', this.refresh);
     this.window.addEventListener('load', this.refresh);
 
-    this.refreshBreakpoints();
+    // Monitor the head element for changes to detect any stylesheets that might be added after load
+    this.headObserver = new MutationObserver(this.headChangesCallback);
+    this.headObserver.observe(this.window.document.querySelector('head'), {
+      childList: true,
+      subtree: true,
+    });
+
+    // If the FontFaceSet property exists subscribe to the ready promise to refresh when fonts are
+    // finished loading
+    if (this.documentFonts && this.documentFonts.status !== 'loaded') {
+      this.documentFonts.ready.then(this.refresh);
+    }
   }
 
   // noinspection JSUnusedGlobalSymbols
@@ -83,11 +101,29 @@ export default class Monitor {
     this.window.removeEventListener('resize', this.resizeCallback);
     this.window.removeEventListener('DOMContentLoaded', this.refresh);
     this.window.removeEventListener('load', this.refresh);
+
+    this.headObserver.disconnect();
   }
 
   refresh() {
     this.refreshBreakpoints();
     this.resizeCallback();
+  }
+
+  headChangesCallback(mutationsList) {
+    mutationsList.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          node.addEventListener('load', () => {
+            this.refresh();
+
+            if (this.documentFonts && this.documentFonts.status !== 'loaded') {
+              this.documentFonts.ready.then(this.refresh);
+            }
+          });
+        });
+      }
+    });
   }
 
   resizeCallback() {
@@ -217,4 +253,10 @@ export default class Monitor {
  * @property {HTMLElement} element
  * @property {int} maxWidth
  * @property {int} index
+ */
+
+/**
+ * @typedef {Object} FontFaceSet
+ * @property {string} status
+ * @property {Promise} ready
  */
