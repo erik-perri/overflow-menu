@@ -121,32 +121,36 @@ export default class Monitor {
       this.overflowMenuItemElement,
     ));
 
-    this.breakpoints = [];
+    const menuItemNodes = this.rootMenuElement.querySelectorAll(this.menuItemSelector);
 
-    const menuItems = this.rootMenuElement.querySelectorAll(this.menuItemSelector);
-    if (menuItems.length < 1) {
-      console.warn(`No menu items found with selector ${this.menuItemSelector}`);
-      return;
-    }
-
-    let currentMaxWidth = 0;
-
-    menuItems.forEach((element, index) => {
-      if (element === this.overflowMenuItemElement) {
-        return;
-      }
-
-      const elementWidth = this.getOuterWidth(element);
-      currentMaxWidth += elementWidth;
-
-      this.breakpoints.push({ element, index, maxWidth: currentMaxWidth });
-    });
+    this.breakpoints = this.calculateBreakpoints(Array.prototype.slice.call(menuItemNodes).filter(
+      (item) => item !== this.overflowMenuItemElement,
+    ));
 
     this.overflowMenuItemElement.classList.add('active');
 
     this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
 
     this.overflowMenuItemElement.classList.remove('active');
+  }
+
+  /**
+   * @param {HTMLElement[]} menuItems
+   * @returns {MonitorBreakpoint[]}
+   */
+  calculateBreakpoints(menuItems) {
+    const breakpoints = [];
+
+    let currentMaxWidth = 0;
+
+    menuItems.forEach((element, index) => {
+      const elementWidth = this.getOuterWidth(element);
+      currentMaxWidth += elementWidth;
+
+      breakpoints.push({ element, index, maxWidth: currentMaxWidth });
+    });
+
+    return breakpoints;
   }
 
   /**
