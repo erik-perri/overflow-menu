@@ -1,155 +1,170 @@
-export class Monitor {
-    rootMenuElement;
-    menuItemSelector;
-    overflowMenuItem;
-    overflowMenuItemWidth;
-    overflowMenuItemsContainerElement;
+export default class Monitor {
+  rootMenuElement;
 
-    /**
-     * @type {MonitorBreakpoint[]}
-     */
-    breakpoints = [];
+  menuItemSelector;
 
-    /**
-     * @param {HTMLElement} rootMenuElement
-     * @param {string} menuItemSelector
-     * @param {HTMLElement} overflowMenuItem
-     * @param {HTMLElement} overflowMenuContainer
-     * @param {Window} windowElement
-     */
-    constructor(
-        rootMenuElement,
-        menuItemSelector,
-        overflowMenuItem,
-        overflowMenuContainer,
-        windowElement = window
-    ) {
-        this.rootMenuElement = rootMenuElement;
-        this.menuItemSelector = menuItemSelector;
-        this.overflowMenuItem = overflowMenuItem;
-        this.overflowMenuItemWidth = 0;
-        this.overflowMenuItemsContainerElement = overflowMenuContainer || overflowMenuItem.querySelector(`${rootMenuElement.tagName}`);
-        if (this.overflowMenuItemsContainerElement === null) {
-            throw new Error(`Failed to find overflow menu items container using selector "${rootMenuElement.tagName}"`)
-        }
+  overflowMenuItem;
 
-        this.window = windowElement;
-        this.onResize = this.onResize.bind(this);
-        this.refresh = this.refresh.bind(this);
+  overflowMenuItemWidth;
+
+  overflowMenuItemContainerElement;
+
+  /**
+   * @type {MonitorBreakpoint[]}
+   */
+  breakpoints = [];
+
+  /**
+   * @param {HTMLElement} rootMenuElement
+   * @param {string} menuItemSelector
+   * @param {HTMLElement} overflowMenuItemElement
+   * @param {HTMLElement} overflowMenuItemContainerElement
+   * @param {Window} windowElement
+   */
+  constructor(
+    rootMenuElement,
+    menuItemSelector,
+    overflowMenuItemElement,
+    overflowMenuItemContainerElement,
+    windowElement = window,
+  ) {
+    this.rootMenuElement = rootMenuElement;
+    this.menuItemSelector = menuItemSelector;
+    this.overflowMenuItem = overflowMenuItemElement;
+    this.overflowMenuItemWidth = 0;
+
+    if (overflowMenuItemContainerElement) {
+      this.overflowMenuItemContainerElement = overflowMenuItemContainerElement;
+    } else {
+      this.overflowMenuItemContainerElement = overflowMenuItemElement.querySelector(`${rootMenuElement.tagName}`);
     }
 
-    start() {
-        this.window.addEventListener('resize', this.onResize);
-        this.window.addEventListener('DOMContentLoaded', this.refresh);
-        this.window.addEventListener('load', this.refresh);
-        this.refreshBreakpoints();
+    if (this.overflowMenuItemContainerElement === null) {
+      throw new Error(`Failed to find overflow menu items container using selector "${rootMenuElement.tagName}"`);
     }
 
-    stop() {
-        this.window.removeEventListener('resize', this.onResize);
-        this.window.removeEventListener('DOMContentLoaded', this.refresh);
-        this.window.removeEventListener('load', this.refresh);
+    this.window = windowElement;
+    this.onResize = this.onResize.bind(this);
+    this.refresh = this.refresh.bind(this);
+  }
+
+  start() {
+    this.window.addEventListener('resize', this.onResize);
+    this.window.addEventListener('DOMContentLoaded', this.refresh);
+    this.window.addEventListener('load', this.refresh);
+    this.refreshBreakpoints();
+  }
+
+  stop() {
+    this.window.removeEventListener('resize', this.onResize);
+    this.window.removeEventListener('DOMContentLoaded', this.refresh);
+    this.window.removeEventListener('load', this.refresh);
+  }
+
+  refresh() {
+    this.refreshBreakpoints();
+    this.onResize();
+  }
+
+  onResize() {
+    const containerWidth = Math.ceil(this.rootMenuElement.offsetWidth
+      - this.getElementPaddingSize(this.rootMenuElement)
+      - this.overflowMenuItemWidth);
+    const overflowElements = [];
+
+    this.breakpoints.forEach(({ element, index, maxWidth }) => {
+      if (maxWidth >= containerWidth) {
+        overflowElements.push({ element, index });
+      } else if (element.parentElement === this.overflowMenuItemContainerElement) {
+        this.rootMenuElement.insertBefore(element, this.overflowMenuItem);
+      }
+    });
+
+    // We move the overflow elements after the loop so we can sort by the index
+    if (overflowElements.length) {
+      this.overflowMenuItem.classList.add('active');
+      overflowElements
+        .sort((a, b) => a.index - b.index)
+        .map((info) => this.overflowMenuItemContainerElement.appendChild(info.element));
+    } else {
+      this.overflowMenuItem.classList.remove('active');
+    }
+  }
+
+  refreshBreakpoints() {
+    // Move any known items back into the root element so the size is calculated properly
+    this.breakpoints.map((info) => this.rootMenuElement.insertBefore(
+      info.element,
+      this.overflowMenuItem,
+    ));
+
+    this.breakpoints = [];
+
+    const menuItems = this.rootMenuElement.querySelectorAll(this.menuItemSelector);
+    if (menuItems.length < 1) {
+      console.warn(`No menu items found with selector ${this.menuItemSelector}`);
+      return;
     }
 
-    refresh() {
-        this.refreshBreakpoints();
-        this.onResize();
-    }
+    let currentMaxWidth = 0;
 
-    onResize() {
-        const containerWidth = Math.ceil(this.rootMenuElement.offsetWidth
-            - this.getElementPaddingSize(this.rootMenuElement)
-            - this.overflowMenuItemWidth);
-        const overflowElements = [];
+    menuItems.forEach((element, index) => {
+      if (element === this.overflowMenuItem) {
+        return;
+      }
 
-        this.breakpoints.forEach((info) => {
-            const parentElement = info.element.parentElement;
+      const elementWidth = Math.ceil(element.offsetWidth + this.getElementMarginSize(element));
+      currentMaxWidth += elementWidth;
 
-            if (info.maxWidth >= containerWidth) {
-                overflowElements.push({element: info.element, index: info.index});
-            } else if (parentElement === this.overflowMenuItemsContainerElement) {
-                this.rootMenuElement.insertBefore(info.element, this.overflowMenuItem);
-            }
-        });
+      this.breakpoints.push({ element, index, maxWidth: currentMaxWidth });
+    });
 
-        // We move the overflow elements after the loop so we can sort by the index
-        if (overflowElements.length) {
-            this.overflowMenuItem.classList.add('active');
-            overflowElements
-                .sort((a, b) => a.index - b.index)
-                .map(info => this.overflowMenuItemsContainerElement.appendChild(info.element))
-        } else {
-            this.overflowMenuItem.classList.remove('active');
-        }
-    }
+    this.overflowMenuItem.classList.add('active');
 
-    refreshBreakpoints() {
-        // Move any known items back into the root element so the size is calculated properly
-        this.breakpoints.map(info => this.rootMenuElement.insertBefore(info.element, this.overflowMenuItem));
+    const marginSize = this.getElementMarginSize(this.overflowMenuItem);
+    this.overflowMenuItemWidth = Math.ceil(this.overflowMenuItem.offsetWidth + marginSize);
 
-        this.breakpoints = [];
+    this.overflowMenuItem.classList.remove('active');
+  }
 
-        const menuItems = this.rootMenuElement.querySelectorAll(this.menuItemSelector);
-        if (menuItems.length < 1) {
-            console.warn(`No menu items found with selector ${this.menuItemSelector}`);
-            return;
-        }
+  /**
+   * @param {HTMLElement} element
+   * @param {string[]} properties
+   */
+  getElementComputedStyleSum(element, properties) {
+    const computedStyle = this.window.getComputedStyle(element);
+    let sum = 0;
 
-        let currentMaxWidth = 0;
+    properties.forEach((property) => {
+      const parsed = parseInt(computedStyle[property], 10);
+      if (Number.isNaN(parsed)) {
+        console.warn(`Failed to parse property ${property}`);
+        return;
+      }
+      sum += parsed;
+    });
 
-        menuItems.forEach((element, index) => {
-            if (element === this.overflowMenuItem) {
-                return;
-            }
+    return sum;
+  }
 
-            const elementWidth = Math.ceil(element.offsetWidth + this.getElementMarginSize(element));
-            currentMaxWidth += elementWidth;
+  /**
+   * @param {HTMLElement} element
+   */
+  getElementMarginSize(element) {
+    return Math.ceil(this.getElementComputedStyleSum(element, ['marginLeft', 'marginRight']));
+  }
 
-            this.breakpoints.push({element, index, maxWidth: currentMaxWidth});
-        });
-
-        this.overflowMenuItem.classList.add('active');
-        this.overflowMenuItemWidth = Math.ceil(this.overflowMenuItem.offsetWidth + this.getElementMarginSize(this.overflowMenuItem));
-        this.overflowMenuItem.classList.remove('active');
-    }
-
-    /**
-     * @param {HTMLElement} element
-     * @param {string[]} properties
-     */
-    getElementComputedStyleSum(element, properties) {
-        const computedStyle = this.window.getComputedStyle(element);
-        let sum = 0;
-
-        properties.forEach((property) => {
-            const parsed = parseInt(computedStyle[property], 10);
-            if (isNaN(parsed)) {
-                console.warn(`Failed to parse property ${property}`);
-                return;
-            }
-            sum += parsed;
-        })
-
-        return sum;
-    }
-
-    /**
-     * @param {HTMLElement} element
-     */
-    getElementMarginSize(element) {
-        return Math.ceil(this.getElementComputedStyleSum(element, ['marginLeft', 'marginRight']));
-    }
-
-    /**
-     * @param {HTMLElement} element
-     */
-    getElementPaddingSize(element) {
-        return Math.ceil(this.getElementComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
-    }
+  /**
+   * @param {HTMLElement} element
+   */
+  getElementPaddingSize(element) {
+    return Math.ceil(this.getElementComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
+  }
 }
 
 /**
  * @typedef {Object} MonitorBreakpoint
  * @property {HTMLElement} element
  * @property {int} maxWidth
+ * @property {int} index
  */
