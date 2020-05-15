@@ -90,9 +90,10 @@ export default class Monitor {
   }
 
   resizeCallback() {
-    const containerWidth = Math.ceil(this.rootMenuElement.offsetWidth
-      - this.getElementPaddingSize(this.rootMenuElement)
-      - this.overflowMenuItemWidth);
+    let containerWidth = this.getInnerWidth(this.rootMenuElement);
+
+    containerWidth -= this.overflowMenuItemWidth;
+
     const overflowElements = [];
 
     this.breakpoints.forEach(({ element, index, maxWidth }) => {
@@ -136,7 +137,7 @@ export default class Monitor {
         return;
       }
 
-      const elementWidth = Math.ceil(element.offsetWidth + this.getElementMarginSize(element));
+      const elementWidth = this.getOuterWidth(element);
       currentMaxWidth += elementWidth;
 
       this.breakpoints.push({ element, index, maxWidth: currentMaxWidth });
@@ -144,44 +145,61 @@ export default class Monitor {
 
     this.overflowMenuItemElement.classList.add('active');
 
-    const marginSize = this.getElementMarginSize(this.overflowMenuItemElement);
-    this.overflowMenuItemWidth = Math.ceil(this.overflowMenuItemElement.offsetWidth + marginSize);
+    this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
 
     this.overflowMenuItemElement.classList.remove('active');
   }
 
   /**
    * @param {HTMLElement} element
+   */
+  getOuterWidth(element) {
+    return Math.ceil(element.offsetWidth + this.getHorizontalMarginSize(element));
+  }
+
+  /**
+   * @param {HTMLElement} element
+   */
+  getInnerWidth(element) {
+    return Math.ceil(element.offsetWidth - this.getHorizontalPaddingSize(element));
+  }
+
+  /**
+   * @param {HTMLElement} element
+   */
+  getHorizontalMarginSize(element) {
+    return Math.ceil(this.getComputedStyleSum(element, ['marginLeft', 'marginRight']));
+  }
+
+  /**
+   * @param {HTMLElement} element
+   */
+  getHorizontalPaddingSize(element) {
+    return Math.ceil(this.getComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
+  }
+
+  /**
+   * @param {Element} element
    * @param {string[]} properties
    */
-  getElementComputedStyleSum(element, properties) {
+  getComputedStyleSum(element, properties) {
     const computedStyle = this.window.getComputedStyle(element);
     let sum = 0;
 
     properties.forEach((property) => {
+      if (!computedStyle[property]) {
+        return;
+      }
+
       const parsed = parseInt(computedStyle[property], 10);
       if (Number.isNaN(parsed)) {
-        console.warn(`Failed to parse property ${property}`);
+        console.warn(`Failed to parse property "${property}", value "${computedStyle[property]}"`);
         return;
       }
       sum += parsed;
     });
 
     return sum;
-  }
-
-  /**
-   * @param {HTMLElement} element
-   */
-  getElementMarginSize(element) {
-    return Math.ceil(this.getElementComputedStyleSum(element, ['marginLeft', 'marginRight']));
-  }
-
-  /**
-   * @param {HTMLElement} element
-   */
-  getElementPaddingSize(element) {
-    return Math.ceil(this.getElementComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
   }
 }
 
