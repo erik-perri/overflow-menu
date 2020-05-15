@@ -158,10 +158,10 @@ export default class Monitor {
     });
 
     if (overflowElements.length) {
-      this.overflowMenuItemElement.classList.add('active');
+      this.overflowMenuItemElement.classList.add('overflow-active');
       overflowElements.map((i) => this.overflowItemContainerElement.appendChild(i.element));
     } else {
-      this.overflowMenuItemElement.classList.remove('active');
+      this.overflowMenuItemElement.classList.remove('overflow-active');
     }
   }
 
@@ -179,15 +179,15 @@ export default class Monitor {
     ));
 
     // Show the overflow menu item so we can calculate it's size properly
-    const hadActiveClass = this.overflowMenuItemElement.classList.contains('active');
+    const hadActiveClass = this.overflowMenuItemElement.classList.contains('overflow-active');
     if (!hadActiveClass) {
-      this.overflowMenuItemElement.classList.add('active');
+      this.overflowMenuItemElement.classList.add('overflow-active');
     }
 
     this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
 
     if (!hadActiveClass) {
-      this.overflowMenuItemElement.classList.remove('active');
+      this.overflowMenuItemElement.classList.remove('overflow-active');
     }
   }
 
