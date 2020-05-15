@@ -78,9 +78,20 @@ export default class Monitor {
   start() {
     this.window.addEventListener('resize', this.resizeCallback);
 
-    // Refresh the breakpoints on when the dom is ready and when the content is loaded
-    this.window.addEventListener('DOMContentLoaded', this.refresh);
-    this.window.addEventListener('load', this.refresh);
+    const { readyState } = document;
+
+    if (readyState === 'complete') {
+      // If we are already loaded we can go ahead and refresh
+      this.refresh();
+    } else {
+      // Otherwise refresh the breakpoints when the dom is ready and when everything is loaded
+
+      if (readyState !== 'interactive') {
+        this.window.addEventListener('DOMContentLoaded', this.refresh);
+      }
+
+      this.window.addEventListener('load', this.refresh);
+    }
 
     // Monitor the head element for changes to detect any stylesheets that might be added after load
     if (this.window.MutationObserver) {
