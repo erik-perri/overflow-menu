@@ -83,11 +83,13 @@ export default class Monitor {
     this.window.addEventListener('load', this.refresh);
 
     // Monitor the head element for changes to detect any stylesheets that might be added after load
-    this.headObserver = new MutationObserver(this.headChangesCallback);
-    this.headObserver.observe(this.window.document.querySelector('head'), {
-      childList: true,
-      subtree: true,
-    });
+    if (this.window.MutationObserver) {
+      this.headObserver = new MutationObserver(this.headChangesCallback);
+      this.headObserver.observe(this.window.document.querySelector('head'), {
+        childList: true,
+        subtree: true,
+      });
+    }
 
     // If the FontFaceSet property exists subscribe to the ready promise to refresh when fonts are
     // finished loading
@@ -102,7 +104,9 @@ export default class Monitor {
     this.window.removeEventListener('DOMContentLoaded', this.refresh);
     this.window.removeEventListener('load', this.refresh);
 
-    this.headObserver.disconnect();
+    if (this.headObserver) {
+      this.headObserver.disconnect();
+    }
   }
 
   refresh() {
