@@ -78,6 +78,7 @@ export default class Monitor {
     this.refreshBreakpoints();
   }
 
+  // noinspection JSUnusedGlobalSymbols
   stop() {
     this.window.removeEventListener('resize', this.resizeCallback);
     this.window.removeEventListener('DOMContentLoaded', this.refresh);
@@ -90,26 +91,24 @@ export default class Monitor {
   }
 
   resizeCallback() {
+    const overflowElements = [];
     let containerWidth = this.getInnerWidth(this.rootMenuElement);
 
     containerWidth -= this.overflowMenuItemWidth;
 
-    const overflowElements = [];
-
     this.breakpoints.forEach(({ element, index, maxWidth }) => {
       if (maxWidth >= containerWidth) {
+        // We store the overflow elements in an array with the index and insert it later so we don't
+        // have to worry about inserting in the correct position here.
         overflowElements.push({ element, index });
       } else if (element.parentElement === this.overflowItemContainerElement) {
         this.rootMenuElement.insertBefore(element, this.overflowMenuItemElement);
       }
     });
 
-    // We move the overflow elements after the loop so we can sort by the index
     if (overflowElements.length) {
       this.overflowMenuItemElement.classList.add('active');
-      overflowElements
-        .sort((a, b) => a.index - b.index)
-        .map((info) => this.overflowItemContainerElement.appendChild(info.element));
+      overflowElements.map((i) => this.overflowItemContainerElement.appendChild(i.element));
     } else {
       this.overflowMenuItemElement.classList.remove('active');
     }
