@@ -127,11 +127,17 @@ export default class Monitor {
       (item) => item !== this.overflowMenuItemElement,
     ));
 
-    this.overflowMenuItemElement.classList.add('active');
+    // Show the overflow menu item so we can calculate it's size properly
+    const hadActiveClass = this.overflowMenuItemElement.classList.contains('active');
+    if (!hadActiveClass) {
+      this.overflowMenuItemElement.classList.add('active');
+    }
 
     this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
 
-    this.overflowMenuItemElement.classList.remove('active');
+    if (!hadActiveClass) {
+      this.overflowMenuItemElement.classList.remove('active');
+    }
   }
 
   /**
