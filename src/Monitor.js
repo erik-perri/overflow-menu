@@ -85,7 +85,6 @@ export default class Monitor {
       this.refresh();
     } else {
       // Otherwise refresh the breakpoints when the dom is ready and when everything is loaded
-
       if (readyState !== 'interactive') {
         this.window.addEventListener('DOMContentLoaded', this.refresh);
       }
@@ -212,20 +211,42 @@ export default class Monitor {
 
   /**
    * @param {HTMLElement} element
+   * @returns {int}
    */
   getOuterWidth(element) {
-    return Math.ceil(element.offsetWidth + this.getHorizontalMarginSize(element));
+    return Math.ceil(this.getSubpixelWidth(element) + this.getHorizontalMarginSize(element));
   }
 
   /**
    * @param {HTMLElement} element
+   * @returns {int}
    */
   getInnerWidth(element) {
-    return Math.floor(element.offsetWidth - this.getHorizontalPaddingSize(element));
+    return Math.floor(this.getSubpixelWidth(element) - this.getHorizontalPaddingSize(element));
   }
 
   /**
    * @param {HTMLElement} element
+   * @returns {float|int}
+   */
+  getSubpixelWidth(element) {
+    const computedStyle = this.window.getComputedStyle(element);
+    if (computedStyle.width === 'auto') {
+      return element.offsetWidth;
+    }
+
+    const width = parseFloat(computedStyle.width);
+    if (Number.isNaN(width)) {
+      console.warn(`Failed to parse property "width", value "${computedStyle.width}"`, element);
+      return element.offsetWidth;
+    }
+
+    return width;
+  }
+
+  /**
+   * @param {HTMLElement} element
+   * @returns {int}
    */
   getHorizontalMarginSize(element) {
     return Math.ceil(this.getComputedStyleSum(element, ['marginLeft', 'marginRight']));
@@ -233,6 +254,7 @@ export default class Monitor {
 
   /**
    * @param {HTMLElement} element
+   * @returns {int}
    */
   getHorizontalPaddingSize(element) {
     return Math.ceil(this.getComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
@@ -241,6 +263,7 @@ export default class Monitor {
   /**
    * @param {Element} element
    * @param {string[]} properties
+   * @returns {int}
    */
   getComputedStyleSum(element, properties) {
     const computedStyle = this.window.getComputedStyle(element);
@@ -251,12 +274,13 @@ export default class Monitor {
         return;
       }
 
-      const parsed = parseInt(computedStyle[property], 10);
+      const parsed = parseFloat(computedStyle[property]);
       if (Number.isNaN(parsed)) {
-        console.warn(`Failed to parse property "${property}", value "${computedStyle[property]}"`);
+        console.warn(`Failed to parse property "${property}", value "${computedStyle[property]}"`, element);
         return;
       }
-      sum += parsed;
+
+      sum += Math.ceil(parsed);
     });
 
     return sum;
