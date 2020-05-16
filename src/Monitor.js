@@ -160,7 +160,11 @@ export default class Monitor {
       this.rootMenuElementIsHidden = rootMenuElementIsHidden;
     }
 
-    containerWidth -= this.overflowMenuItemWidth;
+    // Check if the overflow menu should be visible, if so subtract it from the container width so
+    // the checks below are against the container with it visible.
+    if (this.breakpoints.find(({ maxWidth }) => maxWidth >= containerWidth) !== undefined) {
+      containerWidth -= this.overflowMenuItemWidth;
+    }
 
     const overflowElements = [];
 
