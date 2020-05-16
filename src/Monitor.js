@@ -5,6 +5,11 @@ export default class Monitor {
   rootMenuElement;
 
   /**
+   * @type {boolean}
+   */
+  rootMenuElementIsHidden;
+
+  /**
    * @type {string}
    */
   menuItemSelector;
@@ -51,6 +56,7 @@ export default class Monitor {
     documentFonts = null,
   ) {
     this.rootMenuElement = rootMenuElement;
+    this.rootMenuElementIsHidden = rootMenuElement.offsetWidth === 0;
     this.menuItemSelector = menuItemSelector;
     this.overflowMenuItemElement = overflowMenuItemElement;
     this.overflowMenuItemWidth = 0;
@@ -142,6 +148,17 @@ export default class Monitor {
 
   resizeCallback() {
     let containerWidth = this.getInnerWidth(this.rootMenuElement);
+
+    // If the element visibility changes we need to recalculate the widths.  If we don't and the
+    // menu started hidden all of the widths will be set to 0.
+    const rootMenuElementIsHidden = containerWidth === 0;
+    if (rootMenuElementIsHidden !== this.rootMenuElementIsHidden) {
+      // We only need to recalculate if we're actually being shown
+      if (!rootMenuElementIsHidden) {
+        this.refreshBreakpoints();
+      }
+      this.rootMenuElementIsHidden = rootMenuElementIsHidden;
+    }
 
     containerWidth -= this.overflowMenuItemWidth;
 
