@@ -208,17 +208,6 @@ export default class Monitor {
     }
 
     this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
-    if (this.overflowMenuItemWidth === 0) {
-      // If we can't get the width due to someone hiding the container with the :hidden pseudo
-      // selector, we will add a temporary item to get the size.
-      const whenEmpty = this.window.getComputedStyle(this.overflowItemContainerElement, ':empty');
-      if (whenEmpty.display === 'none') {
-        const fakeMenuItem = this.window.document.createElement('li');
-        this.overflowItemContainerElement.appendChild(fakeMenuItem);
-        this.overflowMenuItemWidth = this.getOuterWidth(this.overflowMenuItemElement);
-        fakeMenuItem.remove();
-      }
-    }
 
     if (!hadActiveClass) {
       this.overflowMenuItemElement.classList.remove('overflow-active');
