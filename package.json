@@ -1,7 +1,5 @@
 {
   "name": "overflow-menu",
-  "main": "dist/overflow-menu.cjs.js",
-  "module": "dist/overflow-menu.esm.js",
   "browser": "dist/overflow-menu.umd.js",
   "license": "MIT",
   "scripts": {
