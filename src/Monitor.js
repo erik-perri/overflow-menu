@@ -221,7 +221,7 @@ export default class Monitor {
    * @param {HTMLElement} element
    */
   getInnerWidth(element) {
-    return Math.ceil(element.offsetWidth - this.getHorizontalPaddingSize(element));
+    return Math.floor(element.offsetWidth - this.getHorizontalPaddingSize(element));
   }
 
   /**
