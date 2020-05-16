@@ -189,7 +189,7 @@ export default class Monitor {
   }
 
   refreshBreakpoints() {
-    // Move any known items back into the root element so their size is calculated properly
+    // Move any known items back into the root element so the size is calculated properly
     this.breakpoints.map((info) => this.rootMenuElement.insertBefore(
       info.element,
       this.overflowMenuItemElement,
