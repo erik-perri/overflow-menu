@@ -1,5 +1,40 @@
 export default class Monitor {
   /**
+   * @type {HTMLElement}
+   */
+  rootMenuElement;
+
+  /**
+   * @type {string}
+   */
+  menuItemSelector;
+
+  /**
+   * @type {HTMLElement}
+   */
+  overflowMenuItemElement;
+
+  /**
+   * @type {int}
+   */
+  overflowMenuItemWidth;
+
+  /**
+   * @type {HTMLElement}
+   */
+  overflowItemContainerElement;
+
+  /**
+   * @type {Window}
+   */
+  window;
+
+  /**
+   * @type {MonitorBreakpoint[]}
+   */
+  breakpoints = [];
+
+  /**
    * @param {HTMLElement} rootMenuElement
    * @param {string} menuItemSelector
    * @param {HTMLElement} overflowMenuItemElement
@@ -39,41 +74,6 @@ export default class Monitor {
     this.resizeCallback = this.resizeCallback.bind(this);
     this.headChangesCallback = this.headChangesCallback.bind(this);
   }
-
-  /**
-   * @type {HTMLElement}
-   */
-  rootMenuElement;
-
-  /**
-   * @type {string}
-   */
-  menuItemSelector;
-
-  /**
-   * @type {HTMLElement}
-   */
-  overflowMenuItemElement;
-
-  /**
-   * @type {int}
-   */
-  overflowMenuItemWidth;
-
-  /**
-   * @type {HTMLElement}
-   */
-  overflowItemContainerElement;
-
-  /**
-   * @type {Window}
-   */
-  window;
-
-  /**
-   * @type {MonitorBreakpoint[]}
-   */
-  breakpoints = [];
 
   start() {
     this.window.addEventListener('resize', this.resizeCallback);
@@ -141,10 +141,11 @@ export default class Monitor {
   }
 
   resizeCallback() {
-    const overflowElements = [];
     let containerWidth = this.getInnerWidth(this.rootMenuElement);
 
     containerWidth -= this.overflowMenuItemWidth;
+
+    const overflowElements = [];
 
     this.breakpoints.forEach(({ element, index, maxWidth }) => {
       if (maxWidth >= containerWidth) {
@@ -152,6 +153,8 @@ export default class Monitor {
         // have to worry about inserting in the correct position here.
         overflowElements.push({ element, index });
       } else if (element.parentElement === this.overflowItemContainerElement) {
+        // If the element breakpoint is smaller than the container and it is  a child of the
+        // overflow container we need to move it back to the root.
         this.rootMenuElement.insertBefore(element, this.overflowMenuItemElement);
       }
     });
