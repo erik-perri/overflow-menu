@@ -1,59 +1,56 @@
+interface MonitorBreakpoint {
+  element: HTMLElement;
+  index: number;
+  maxWidth: number;
+}
+
+interface FontFaceSetInterface {
+  status: string;
+  ready: Promise<void>;
+}
+
+interface DocumentInterface {
+  fonts?: FontFaceSetInterface;
+}
+
+interface WindowInterface {
+  MutationObserver?: MutationObserver;
+}
+
 export default class Monitor {
-  /**
-   * @type {HTMLElement}
-   */
-  rootMenuElement;
+  private readonly rootMenuElement: HTMLElement;
 
-  /**
-   * @type {boolean}
-   */
-  rootMenuElementIsHidden;
+  private rootMenuElementIsHidden: boolean;
 
-  /**
-   * @type {string}
-   */
-  menuItemSelector;
+  private readonly menuItemSelector: string;
 
-  /**
-   * @type {HTMLElement}
-   */
-  overflowMenuItemElement;
+  private readonly overflowMenuItemElement: HTMLElement;
 
-  /**
-   * @type {int}
-   */
-  overflowMenuItemWidth;
+  private overflowMenuItemWidth: number;
 
-  /**
-   * @type {HTMLElement}
-   */
-  overflowItemContainerElement;
+  private readonly overflowItemContainerElement?: HTMLElement;
 
-  /**
-   * @type {Window}
-   */
-  window;
+  private readonly window: Window;
 
-  /**
-   * @type {MonitorBreakpoint[]}
-   */
-  breakpoints = [];
+  private readonly documentFonts?: FontFaceSetInterface;
 
-  /**
-   * @param {HTMLElement} rootMenuElement
-   * @param {string} menuItemSelector
-   * @param {HTMLElement} overflowMenuItemElement
-   * @param {HTMLElement} overflowItemContainerElement
-   * @param {Window} [windowElement]
-   * @param {FontFaceSet|null} [documentFonts]
-   */
+  private headObserver?: MutationObserver;
+
+  private breakpoints: MonitorBreakpoint[] = [];
+
+  private readonly bindings: {
+    refresh: () => void;
+    resizeCallback: () => void;
+    headChangesCallback: MutationCallback;
+  };
+
   constructor(
-    rootMenuElement,
-    menuItemSelector,
-    overflowMenuItemElement,
-    overflowItemContainerElement,
-    windowElement = window,
-    documentFonts = null,
+    rootMenuElement: HTMLElement,
+    menuItemSelector: string,
+    overflowMenuItemElement: HTMLElement,
+    overflowItemContainerElement: HTMLElement,
+    windowElement?: Window,
+    documentFonts?: FontFaceSetInterface,
   ) {
     this.rootMenuElement = rootMenuElement;
     this.rootMenuElementIsHidden = rootMenuElement.offsetWidth === 0;
@@ -64,25 +61,26 @@ export default class Monitor {
     if (overflowItemContainerElement) {
       this.overflowItemContainerElement = overflowItemContainerElement;
     } else {
-      this.overflowItemContainerElement = overflowMenuItemElement.querySelector(`${rootMenuElement.tagName}`);
+      const foundOverflowMenu = overflowMenuItemElement.querySelector(`${rootMenuElement.tagName}`);
+      this.overflowItemContainerElement = foundOverflowMenu as HTMLElement;
     }
 
     if (this.overflowItemContainerElement === null) {
       throw new Error(`Failed to find overflow menu items container using selector "${rootMenuElement.tagName}"`);
     }
 
-    this.window = windowElement;
+    this.window = windowElement || window;
+    this.documentFonts = documentFonts || (this.window?.document as DocumentInterface)?.fonts;
 
-    // noinspection JSUnresolvedVariable
-    this.documentFonts = documentFonts || windowElement.document.fonts;
-
-    this.refresh = this.refresh.bind(this);
-    this.resizeCallback = this.resizeCallback.bind(this);
-    this.headChangesCallback = this.headChangesCallback.bind(this);
+    this.bindings = {
+      refresh: this.refresh.bind(this),
+      resizeCallback: this.resizeCallback.bind(this),
+      headChangesCallback: this.headChangesCallback.bind(this),
+    };
   }
 
-  start() {
-    this.window.addEventListener('resize', this.resizeCallback);
+  start(): void {
+    this.window.addEventListener('resize', this.bindings.resizeCallback);
 
     const { readyState } = document;
 
@@ -92,53 +90,54 @@ export default class Monitor {
     } else {
       // Otherwise refresh the breakpoints when the dom is ready and when everything is loaded
       if (readyState !== 'interactive') {
-        this.window.addEventListener('DOMContentLoaded', this.refresh);
+        this.window.addEventListener('DOMContentLoaded', this.bindings.refresh);
       }
 
-      this.window.addEventListener('load', this.refresh);
+      this.window.addEventListener('load', this.bindings.refresh);
     }
 
     // Monitor the head element for changes to detect any stylesheets that might be added after load
-    if (this.window.MutationObserver) {
-      this.headObserver = new MutationObserver(this.headChangesCallback);
-      this.headObserver.observe(this.window.document.querySelector('head'), {
-        childList: true,
-        subtree: true,
-      });
+    if ((this.window as WindowInterface).MutationObserver) {
+      const headNode = this.window.document.querySelector('head');
+
+      if (headNode !== null) {
+        this.headObserver = new MutationObserver(this.bindings.headChangesCallback);
+        this.headObserver.observe(headNode, {
+          childList: true,
+          subtree: true,
+        });
+      }
     }
 
     // If the FontFaceSet property exists subscribe to the ready promise to refresh when fonts are
     // finished loading
     if (this.documentFonts && this.documentFonts.status !== 'loaded') {
-      this.documentFonts.ready.then(this.refresh);
+      this.documentFonts.ready.then(this.bindings.refresh);
     }
   }
 
-  // noinspection JSUnusedGlobalSymbols
-  stop() {
-    this.window.removeEventListener('resize', this.resizeCallback);
-    this.window.removeEventListener('DOMContentLoaded', this.refresh);
-    this.window.removeEventListener('load', this.refresh);
+  stop(): void {
+    this.window.removeEventListener('resize', this.bindings.resizeCallback);
+    this.window.removeEventListener('DOMContentLoaded', this.bindings.refresh);
+    this.window.removeEventListener('load', this.bindings.refresh);
 
-    if (this.headObserver) {
-      this.headObserver.disconnect();
-    }
+    this.headObserver?.disconnect();
   }
 
-  refresh() {
+  refresh(): void {
     this.refreshBreakpoints();
     this.resizeCallback();
   }
 
-  headChangesCallback(mutationsList) {
-    mutationsList.forEach((mutation) => {
+  headChangesCallback(mutations: MutationRecord[]): void {
+    mutations.forEach((mutation) => {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach((node) => {
           node.addEventListener('load', () => {
             this.refresh();
 
             if (this.documentFonts && this.documentFonts.status !== 'loaded') {
-              this.documentFonts.ready.then(this.refresh);
+              this.documentFonts.ready.then(this.bindings.refresh);
             }
           });
         });
@@ -146,7 +145,7 @@ export default class Monitor {
     });
   }
 
-  resizeCallback() {
+  resizeCallback(): void {
     let containerWidth = this.getInnerWidth(this.rootMenuElement);
 
     // If the element visibility changes we need to recalculate the widths.  If we don't and the
@@ -166,13 +165,16 @@ export default class Monitor {
       containerWidth -= this.overflowMenuItemWidth;
     }
 
-    const overflowElements = [];
+    const overflowElements: { element: HTMLElement; index: number }[] = [];
 
     this.breakpoints.forEach(({ element, index, maxWidth }) => {
       if (maxWidth >= containerWidth) {
         // We store the overflow elements in an array with the index and insert it later so we don't
         // have to worry about inserting in the correct position here.
-        overflowElements.push({ element, index });
+        overflowElements.push({
+          element,
+          index,
+        });
       } else if (element.parentElement === this.overflowItemContainerElement) {
         // If the element breakpoint is smaller than the container and it is  a child of the
         // overflow container we need to move it back to the root.
@@ -182,13 +184,13 @@ export default class Monitor {
 
     if (overflowElements.length) {
       this.overflowMenuItemElement.classList.add('overflow-active');
-      overflowElements.map((i) => this.overflowItemContainerElement.appendChild(i.element));
+      overflowElements.map((i) => this.overflowItemContainerElement?.appendChild(i.element));
     } else {
       this.overflowMenuItemElement.classList.remove('overflow-active');
     }
   }
 
-  refreshBreakpoints() {
+  refreshBreakpoints(): void {
     // Move any known items back into the root element so the size is calculated properly
     this.breakpoints.map((info) => this.rootMenuElement.insertBefore(
       info.element,
@@ -198,7 +200,7 @@ export default class Monitor {
     const menuItemNodes = this.rootMenuElement.querySelectorAll(this.menuItemSelector);
 
     this.breakpoints = this.calculateBreakpoints(Array.prototype.slice.call(menuItemNodes).filter(
-      (item) => item !== this.overflowMenuItemElement,
+      (item: HTMLElement) => item !== this.overflowMenuItemElement,
     ));
 
     // Show the overflow menu item so we can calculate it's size properly
@@ -218,8 +220,8 @@ export default class Monitor {
    * @param {HTMLElement[]} menuItems
    * @returns {MonitorBreakpoint[]}
    */
-  calculateBreakpoints(menuItems) {
-    const breakpoints = [];
+  calculateBreakpoints(menuItems: HTMLElement[]): MonitorBreakpoint[] {
+    const breakpoints: MonitorBreakpoint[] = [];
 
     let currentMaxWidth = 0;
 
@@ -235,25 +237,25 @@ export default class Monitor {
 
   /**
    * @param {HTMLElement} element
-   * @returns {int}
+   * @returns {number}
    */
-  getOuterWidth(element) {
+  getOuterWidth(element: HTMLElement): number {
     return Math.ceil(this.getSubpixelWidth(element) + this.getHorizontalMarginSize(element));
   }
 
   /**
    * @param {HTMLElement} element
-   * @returns {int}
+   * @returns {number}
    */
-  getInnerWidth(element) {
+  getInnerWidth(element: HTMLElement): number {
     return Math.floor(this.getSubpixelWidth(element) - this.getHorizontalPaddingSize(element));
   }
 
   /**
    * @param {HTMLElement} element
-   * @returns {float|int}
+   * @returns {number}
    */
-  getSubpixelWidth(element) {
+  getSubpixelWidth(element: HTMLElement): number {
     const computedStyle = this.window.getComputedStyle(element);
     if (computedStyle.width === 'auto') {
       return element.offsetWidth;
@@ -261,7 +263,9 @@ export default class Monitor {
 
     const width = parseFloat(computedStyle.width);
     if (Number.isNaN(width)) {
-      console.warn(`Failed to parse property "width", value "${computedStyle.width}"`, element);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Failed to parse property "width", value "${computedStyle.width}"`, element);
+      }
       return element.offsetWidth;
     }
 
@@ -270,37 +274,40 @@ export default class Monitor {
 
   /**
    * @param {HTMLElement} element
-   * @returns {int}
+   * @returns {number}
    */
-  getHorizontalMarginSize(element) {
+  getHorizontalMarginSize(element: HTMLElement): number {
     return Math.ceil(this.getComputedStyleSum(element, ['marginLeft', 'marginRight']));
   }
 
   /**
    * @param {HTMLElement} element
-   * @returns {int}
+   * @returns {number}
    */
-  getHorizontalPaddingSize(element) {
+  getHorizontalPaddingSize(element: HTMLElement): number {
     return Math.ceil(this.getComputedStyleSum(element, ['paddingLeft', 'paddingRight']));
   }
 
   /**
    * @param {Element} element
    * @param {string[]} properties
-   * @returns {int}
+   * @returns {number}
    */
-  getComputedStyleSum(element, properties) {
+  getComputedStyleSum(element: HTMLElement, properties: string[]): number {
     const computedStyle = this.window.getComputedStyle(element);
     let sum = 0;
 
     properties.forEach((property) => {
-      if (!computedStyle[property]) {
+      const computedValue: string = computedStyle.getPropertyValue(property);
+      if (!computedValue) {
         return;
       }
 
-      const parsed = parseFloat(computedStyle[property]);
+      const parsed = parseFloat(computedValue);
       if (Number.isNaN(parsed)) {
-        console.warn(`Failed to parse property "${property}", value "${computedStyle[property]}"`, element);
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Failed to parse property "${property}", value "${computedValue}"`, element);
+        }
         return;
       }
 
@@ -310,16 +317,3 @@ export default class Monitor {
     return sum;
   }
 }
-
-/**
- * @typedef {Object} MonitorBreakpoint
- * @property {HTMLElement} element
- * @property {int} maxWidth
- * @property {int} index
- */
-
-/**
- * @typedef {Object} FontFaceSet
- * @property {string} status
- * @property {Promise} ready
- */
