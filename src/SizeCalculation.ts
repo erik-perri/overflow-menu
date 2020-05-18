@@ -27,7 +27,7 @@ export function getWidth(element: HTMLElement): number {
 }
 
 export function getInsideWidth(element: HTMLElement): number {
-  return getWidth(element) - getStyleSum(element, ['padding-left', 'padding-right']);
+  return Math.max(0, getWidth(element) - getStyleSum(element, ['padding-left', 'padding-right']));
 }
 
 export function getOutsideWidth(element: HTMLElement): number {
@@ -39,7 +39,7 @@ export function getHeight(element: HTMLElement): number {
 }
 
 export function getInsideHeight(element: HTMLElement): number {
-  return getHeight(element) - getStyleSum(element, ['padding-top', 'padding-bottom']);
+  return Math.max(0, getHeight(element) - getStyleSum(element, ['padding-top', 'padding-bottom']));
 }
 
 export function getOutsideHeight(element: HTMLElement): number {
