@@ -1,55 +1,70 @@
-import Monitor from './Monitor';
+import ResizeMonitor from './ResizeMonitor';
+import { OverflowMenu, OverflowMenuInterface } from './OverflowMenu';
+import { ElementSizeCalculator } from './ElementSizeCalculator';
 
-interface AutomaticMonitorInterface {
-  element: HTMLElement;
-  monitor: Monitor;
-}
+const itemContainerSelector = '[data-overflow-menu-items]';
+const overflowItemSelector = '[data-overflow-menu-more-item]';
+const overflowContainerSelector = '[data-overflow-menu-more-container]';
+const menus: { menu: OverflowMenuInterface; element: HTMLElement }[] = [];
+let monitor: ResizeMonitor;
 
-const { document } = window;
-const automaticOverflowMenus: AutomaticMonitorInterface[] = [];
+const createMenus = (): void => {
+  if (menus.length > 0 || monitor !== undefined) {
+    throw new Error('Menus already created');
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('[data-overflow-menu-items]').forEach((element: Element) => {
-    const htmlElement = element as HTMLElement;
+  window.document.querySelectorAll(itemContainerSelector)
+    .forEach((element: Element) => {
+      const htmlElement = element as HTMLElement;
 
-    const menuItemSelector: string = htmlElement.dataset.overflowMenuItems || '';
-    if (!menuItemSelector) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Missing selector', htmlElement);
+      const menuItemSelector: string = htmlElement.dataset.overflowMenuItems || '';
+      if (!menuItemSelector) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Missing selector', htmlElement);
+        }
+        return;
       }
-      return;
-    }
 
-    const menuItemElement: HTMLElement = htmlElement.querySelector('[data-overflow-menu-more-item]') as HTMLElement;
-    const menuContainerElement: HTMLElement = htmlElement.querySelector('[data-overflow-menu-more-container]') as HTMLElement;
-    if (!menuItemElement || !menuContainerElement) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Missing overflow child', element);
+      const overflowItem = htmlElement.querySelector(overflowItemSelector);
+      const overflowContainer = htmlElement.querySelector(overflowContainerSelector);
+      if (!overflowItem || !overflowContainer) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Missing overflow child', element);
+        }
+        return;
       }
-      return;
-    }
 
-    // noinspection JSCheckFunctionSignatures
-    const monitor = new Monitor(
-      htmlElement,
-      menuItemSelector,
-      menuItemElement,
-      menuContainerElement,
-    );
+      const menu = new OverflowMenu(
+        htmlElement,
+        Array.prototype.slice.call(htmlElement.querySelectorAll(menuItemSelector)),
+        overflowContainer as HTMLElement,
+        overflowItem as HTMLElement,
+        new ElementSizeCalculator(window),
+      );
 
+      menus.push({ menu, element: htmlElement });
+    });
+
+  if (menus.length) {
+    monitor = new ResizeMonitor(window);
+    menus.forEach((info) => monitor?.addMenu(info.menu));
     monitor.start();
-
-    automaticOverflowMenus.push({ element: htmlElement, monitor });
-  });
-});
-
-const FindMonitor = (element: HTMLElement): Monitor | null => {
-  const info = automaticOverflowMenus.find((i) => i.element === element);
-
-  return info ? info.monitor : null;
+  }
 };
 
+const { readyState } = window.document;
+
+if (readyState === 'complete' || readyState === 'interactive') {
+  createMenus();
+} else {
+  window.document.addEventListener('DOMContentLoaded', () => createMenus());
+}
+
 export default {
-  Monitor,
-  FindMonitor,
+  OverflowMenu,
+  ResizeMonitor,
+  GetResizeMonitor: (): ResizeMonitor | undefined => monitor,
+  FindMenu: (element: HTMLElement): OverflowMenuInterface | undefined => menus.find(
+    (i) => i.element === element,
+  )?.menu,
 };
