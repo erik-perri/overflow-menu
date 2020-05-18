@@ -1,4 +1,4 @@
-import { ElementSizeCalculatorInterface } from './ElementSizeCalculator';
+import { getInsideWidth, getOutsideWidth } from './SizeCalculation';
 
 export class OverflowMenu implements OverflowMenuInterface {
   private readonly itemContainer: HTMLElement;
@@ -9,13 +9,11 @@ export class OverflowMenu implements OverflowMenuInterface {
 
   private readonly overflowContainer: HTMLElement;
 
-  private readonly calculator: ElementSizeCalculatorInterface;
-
-  private readonly overflowActiveClassName: string;
+  private readonly overflowActiveClass: string;
 
   private breakpoints: MenuBreakpoints[] = [];
 
-  private itemContainerIsHidden: boolean;
+  private itemContainerHidden: boolean;
 
   private overflowItemWidth = 0;
 
@@ -26,32 +24,30 @@ export class OverflowMenu implements OverflowMenuInterface {
     items: HTMLElement[],
     overflowContainer: HTMLElement,
     overflowItem: HTMLElement,
-    calculator: ElementSizeCalculatorInterface,
-    overflowActiveClassName = 'overflow-active',
+    overflowActiveClass = 'overflow-active',
   ) {
     this.itemContainer = itemContainer;
-    this.itemContainerIsHidden = itemContainer.offsetWidth === 0;
+    this.itemContainerHidden = itemContainer.offsetWidth === 0;
     this.items = items;
     this.overflowContainer = overflowContainer;
     this.overflowItem = overflowItem;
-    this.calculator = calculator;
-    this.overflowActiveClassName = overflowActiveClassName;
+    this.overflowActiveClass = overflowActiveClass;
   }
 
   public refreshItems(): void {
     // We round the container width down and the element widths up.  This will ensure we put items
     // in the overflow container before they cause a line break due to the width.
-    let containerWidth = Math.floor(this.calculator.getInnerWidth(this.itemContainer));
+    let containerWidth = Math.floor(getInsideWidth(this.itemContainer));
 
     // If the element visibility changes we need to recalculate the widths.  If we don't and the
     // menu started hidden all of the widths will be set to 0.
     const itemContainerIsHidden = containerWidth === 0;
-    if (itemContainerIsHidden !== this.itemContainerIsHidden) {
+    if (itemContainerIsHidden !== this.itemContainerHidden) {
       // We only need to recalculate if we're actually being shown
       if (!itemContainerIsHidden) {
         this.refreshSizes();
       }
-      this.itemContainerIsHidden = itemContainerIsHidden;
+      this.itemContainerHidden = itemContainerIsHidden;
     }
 
     // Check if the overflow menu should be visible. If it is visible subtract the overflow item
@@ -76,9 +72,9 @@ export class OverflowMenu implements OverflowMenuInterface {
     });
 
     if (this.isOverflowing) {
-      this.overflowItem.classList.add(this.overflowActiveClassName);
+      this.overflowItem.classList.add(this.overflowActiveClass);
     } else {
-      this.overflowItem.classList.remove(this.overflowActiveClassName);
+      this.overflowItem.classList.remove(this.overflowActiveClass);
     }
   }
 
@@ -89,29 +85,29 @@ export class OverflowMenu implements OverflowMenuInterface {
       this.overflowItem,
     ));
 
-    this.breakpoints = this.calculateBreakpoints(this.items.filter(
+    this.breakpoints = OverflowMenu.calculateBreakpoints(this.items.filter(
       (item: HTMLElement) => item !== this.overflowItem,
     ));
 
     // Show the overflow menu item so we can calculate it's size properly
     if (!this.isOverflowing) {
-      this.overflowItem.classList.add(this.overflowActiveClassName);
+      this.overflowItem.classList.add(this.overflowActiveClass);
     }
 
-    this.overflowItemWidth = Math.ceil(this.calculator.getOuterWidth(this.overflowItem));
+    this.overflowItemWidth = Math.ceil(getOutsideWidth(this.overflowItem));
 
     if (!this.isOverflowing) {
-      this.overflowItem.classList.remove(this.overflowActiveClassName);
+      this.overflowItem.classList.remove(this.overflowActiveClass);
     }
   }
 
-  private calculateBreakpoints(menuItems: HTMLElement[]): MenuBreakpoints[] {
+  private static calculateBreakpoints(menuItems: HTMLElement[]): MenuBreakpoints[] {
     const breakpoints: MenuBreakpoints[] = [];
 
     let currentMaxWidth = 0;
 
     menuItems.forEach((element) => {
-      const elementWidth = Math.ceil(this.calculator.getOuterWidth(element));
+      const elementWidth = Math.ceil(getOutsideWidth(element));
       currentMaxWidth += elementWidth;
 
       breakpoints.push({ element, maxWidth: currentMaxWidth });

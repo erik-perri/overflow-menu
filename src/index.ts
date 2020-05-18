@@ -1,6 +1,5 @@
 import ResizeMonitor from './ResizeMonitor';
 import { OverflowMenu, OverflowMenuInterface } from './OverflowMenu';
-import { ElementSizeCalculator } from './ElementSizeCalculator';
 
 const itemContainerSelector = '[data-overflow-menu-items]';
 const overflowItemSelector = '[data-overflow-menu-more-item]';
@@ -39,7 +38,6 @@ const createMenus = (): void => {
         Array.prototype.slice.call(htmlElement.querySelectorAll(menuItemSelector)),
         overflowContainer as HTMLElement,
         overflowItem as HTMLElement,
-        new ElementSizeCalculator(window),
       );
 
       menus.push({ menu, element: htmlElement });
