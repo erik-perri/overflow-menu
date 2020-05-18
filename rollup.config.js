@@ -1,7 +1,8 @@
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import babel from '@rollup/plugin-babel';
-import replace from 'rollup-plugin-replace'
+import replace from 'rollup-plugin-replace';
+import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
 import { eslint } from 'rollup-plugin-eslint';
 import pkg from './package.json';
@@ -12,9 +13,12 @@ const extensions = [
   '.js', '.jsx', '.ts', '.tsx',
 ];
 
+const isProduction = process.env.PRODUCTION;
+
 // https://rollupjs.org/guide/en#outputglobals
 const globals = {};
 
+// noinspection JSUnusedGlobalSymbols
 export default {
   input: './src/index.ts',
 
@@ -22,20 +26,21 @@ export default {
   external: [],
 
   plugins: [
+    // Allows node_modules resolution
+    resolve({ extensions }),
+
     // Lint the code on build
     eslint(),
 
-    // Allows node_modules resolution
-    resolve({ extensions }),
+    // Output types
+    typescript({ useTsconfigDeclarationDir: true }),
 
     // Allow bundling cjs modules. Rollup doesn't understand cjs
     commonjs(),
 
     // Inject the environment to tree shake away development specific code
     replace({
-      'process.env.NODE_ENV': JSON.stringify(
-        process.env.PRODUCTION ? 'production' : 'development'
-      )
+      'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
     }),
 
     // Compile TypeScript/JavaScript files
@@ -68,7 +73,7 @@ export default {
       globals,
       compact: true,
       sourcemap: true,
-      sourcemapExcludeSources: process.env.PRODUCTION,
+      sourcemapExcludeSources: isProduction,
       plugins: [terser()],
     },
   ],

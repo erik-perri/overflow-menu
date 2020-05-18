@@ -3,11 +3,8 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint --ext .ts src/*",
-    "watch:types": "tsc --noEmit --watch",
-    "watch:js": "rollup -c --watch",
-    "build:types": "tsc --emitDeclarationOnly",
-    "build:js": "rollup -c --environment PRODUCTION",
-    "build": "npm run build:types && npm run build:js"
+    "watch": "rollup -c --watch",
+    "build": "rollup -c --environment PRODUCTION"
   },
   "main": "dist/overflow-menu.cjs.js",
   "module": "dist/overflow-menu.esm.js",
@@ -33,6 +30,7 @@
     "rollup-plugin-eslint": "^7.0.0",
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-terser": "^5.3.0",
+    "rollup-plugin-typescript2": "^0.27.1",
     "typescript": "^3.9.2"
   }
 }
