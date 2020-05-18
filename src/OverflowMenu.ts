@@ -56,23 +56,33 @@ export class OverflowMenu implements OverflowMenuInterface {
       return;
     }
 
-    // Check if the overflow menu should be visible. If it is visible subtract the overflow item
-    // width from the container so the check below is using the correct size.
-    if (this.breakpoints.find(({ maxWidth }) => maxWidth >= containerWidth) !== undefined) {
+    const reversedBreakpoints = this.breakpoints.slice().reverse();
+
+    // We check this outside of the loop so we only subtract the overflow item width only when
+    // needed. If we always subtract it we can end up switching to the overflow when an item would
+    // still fit.  We check against the reversed array so we are comparing the highest maxWidth
+    // first.
+    this.isOverflowing = reversedBreakpoints.find(
+      ({ maxWidth }) => maxWidth >= containerWidth,
+    ) !== undefined;
+
+    // If we are overflowing we need to subtract the overflow item width from the container to
+    // account for it being visible.
+    if (this.isOverflowing) {
       containerWidth -= this.overflowItemWidth;
     }
 
-    this.isOverflowing = false;
+    // When adding we loop through the breakpoints in reverse order so we can only insert what is
+    // needed and maintain the correct item order.
+    reversedBreakpoints.forEach(({ element, maxWidth }) => {
+      if (maxWidth >= containerWidth && element.parentElement !== this.overflowContainer) {
+        this.overflowContainer.insertBefore(element, this.overflowContainer.firstChild);
+      }
+    });
 
+    // When removing we don't need to reverse since they will always be removed in order.
     this.breakpoints.forEach(({ element, maxWidth }) => {
-      if (maxWidth >= containerWidth) {
-        this.isOverflowing = true;
-
-        // Some of the items here may already be in the overflow container, we append again anyway
-        // so the proper order is maintained.
-        this.overflowContainer?.appendChild(element);
-      } else if (element.parentElement === this.overflowContainer) {
-        // Move the item back to the item container if we are not overflowing any more.
+      if (maxWidth < containerWidth && element.parentElement === this.overflowContainer) {
         this.itemContainer.insertBefore(element, this.overflowItem);
       }
     });
@@ -85,7 +95,7 @@ export class OverflowMenu implements OverflowMenuInterface {
   }
 
   public refreshSizes(): void {
-    // Move any known items back into the root element so the size is calculated properly
+    // Move any known items back into the root element so the size is calculated properly.
     this.breakpoints.map((info) => this.itemContainer.insertBefore(
       info.element,
       this.overflowItem,
@@ -95,7 +105,7 @@ export class OverflowMenu implements OverflowMenuInterface {
       (item: HTMLElement) => item !== this.overflowItem,
     ));
 
-    // Show the overflow menu item so we can calculate it's size properly
+    // Show the overflow menu item so we can calculate it's size properly.
     if (!this.isOverflowing) {
       this.overflowItem.classList.add(this.overflowActiveClass);
     }
