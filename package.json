@@ -14,6 +14,9 @@
   "browser": "dist/overflow-menu.umd.js",
   "minified": "dist/overflow-menu.umd.min.js",
   "types": "dist/types/index.d.ts",
+  "dependencies": {
+    "@types/css-font-loading-module": "0.0.4"
+  },
   "devDependencies": {
     "@babel/core": "^7.9.6",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
