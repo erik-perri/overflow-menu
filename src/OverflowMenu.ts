@@ -13,9 +13,9 @@ export class OverflowMenu implements OverflowMenuInterface {
 
   private breakpoints: MenuBreakpoints[] = [];
 
-  private itemContainerHidden: boolean;
-
   private overflowItemWidth = 0;
+
+  private isHidden: boolean;
 
   private isOverflowing = false;
 
@@ -27,11 +27,11 @@ export class OverflowMenu implements OverflowMenuInterface {
     overflowActiveClass = 'overflow-active',
   ) {
     this.itemContainer = itemContainer;
-    this.itemContainerHidden = itemContainer.offsetWidth === 0;
     this.items = items;
     this.overflowContainer = overflowContainer;
     this.overflowItem = overflowItem;
     this.overflowActiveClass = overflowActiveClass;
+    this.isHidden = itemContainer.offsetWidth === 0;
   }
 
   public refreshItems(): void {
@@ -42,12 +42,12 @@ export class OverflowMenu implements OverflowMenuInterface {
     // If the element visibility changes we need to recalculate the widths.  If we don't and the
     // menu started hidden all of the widths will be set to 0.
     const itemContainerIsHidden = containerWidth === 0;
-    if (itemContainerIsHidden !== this.itemContainerHidden) {
+    if (itemContainerIsHidden !== this.isHidden) {
       // We only need to recalculate if we're actually being shown
       if (!itemContainerIsHidden) {
         this.refreshSizes();
       }
-      this.itemContainerHidden = itemContainerIsHidden;
+      this.isHidden = itemContainerIsHidden;
     }
 
     // Check if the overflow menu should be visible. If it is visible subtract the overflow item
