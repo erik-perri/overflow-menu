@@ -43,11 +43,17 @@ export class OverflowMenu implements OverflowMenuInterface {
     // menu started hidden all of the widths will be set to 0.
     const itemContainerIsHidden = containerWidth === 0;
     if (itemContainerIsHidden !== this.isHidden) {
-      // We only need to recalculate if we're actually being shown
+      this.isHidden = itemContainerIsHidden;
+
+      // We only need to recalculate if we're actually being shown.
       if (!itemContainerIsHidden) {
         this.refreshSizes();
       }
-      this.isHidden = itemContainerIsHidden;
+    }
+
+    // If we are hidden there is no point continuing.
+    if (this.isHidden) {
+      return;
     }
 
     // Check if the overflow menu should be visible. If it is visible subtract the overflow item
