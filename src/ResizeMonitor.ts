@@ -11,6 +11,8 @@ export default class ResizeMonitor {
 
   private resizeCallbacks: { (): void }[] = [];
 
+  private started = false;
+
   private readonly bindings: {
     processRecalculate: () => void;
     processResize: () => void;
@@ -29,6 +31,14 @@ export default class ResizeMonitor {
   }
 
   public start(): void {
+    if (this.started) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('ResizeMonitor already monitored');
+      }
+      return;
+    }
+    this.started = true;
+
     const { readyState } = this.window.document;
 
     if (readyState === 'complete') {
@@ -56,6 +66,8 @@ export default class ResizeMonitor {
   }
 
   public stop(): void {
+    this.started = false;
+
     this.window.removeEventListener('resize', this.bindings.processResize);
     this.window.removeEventListener('DOMContentLoaded', this.bindings.processRecalculate);
     this.window.removeEventListener('load', this.bindings.processRecalculate);
