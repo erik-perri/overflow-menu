@@ -3,7 +3,7 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint --ext .ts src/*",
-    "build-dev:types": "npm run type-check -- --watch",
+    "build-dev:types": "tsc --noEmit --watch",
     "build-dev:js": "rollup -c --watch",
     "build:types": "tsc --emitDeclarationOnly",
     "build:js": "rollup -c --environment PRODUCTION",
