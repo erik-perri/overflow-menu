@@ -62,6 +62,8 @@ export default {
       format: 'umd',
       name,
       globals,
+      compact: true,
+      sourcemap: !process.env.PRODUCTION,
       plugins: [terser()],
     },
   ],
