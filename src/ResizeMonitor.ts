@@ -1,5 +1,4 @@
 import { FontFaceSet } from 'css-font-loading-module';
-import { OverflowMenuInterface } from './OverflowMenu';
 
 export default class ResizeMonitor {
   private readonly window: Window;
@@ -8,11 +7,13 @@ export default class ResizeMonitor {
 
   private readonly headObservers: MutationObserver[] = [];
 
-  private readonly overflowMenus: OverflowMenuInterface[] = [];
+  private recalculateCallbacks: { (): void }[] = [];
+
+  private resizeCallbacks: { (): void }[] = [];
 
   private readonly bindings: {
-    refreshSizes: () => void;
-    onWindowResize: () => void;
+    processRecalculate: () => void;
+    processResize: () => void;
     onDomChanges: MutationCallback;
   };
 
@@ -21,27 +22,10 @@ export default class ResizeMonitor {
     this.documentFonts = documentFonts || this.window?.document?.fonts;
 
     this.bindings = {
-      refreshSizes: this.refreshSizes.bind(this),
-      onWindowResize: this.onWindowResize.bind(this),
+      processRecalculate: this.processRecalculate.bind(this),
+      processResize: this.processResize.bind(this),
       onDomChanges: this.onDomChanges.bind(this),
     };
-  }
-
-  // noinspection JSUnusedGlobalSymbols
-  public getMenus(): OverflowMenuInterface[] {
-    return this.overflowMenus;
-  }
-
-  public addMenu(menu: OverflowMenuInterface): void {
-    this.overflowMenus.push(menu);
-  }
-
-  // noinspection JSUnusedGlobalSymbols
-  public removeMenu(menu: OverflowMenuInterface): void {
-    const index = this.overflowMenus.indexOf(menu);
-    if (index !== -1) {
-      this.overflowMenus.splice(index, 1);
-    }
   }
 
   public start(): void {
@@ -49,17 +33,17 @@ export default class ResizeMonitor {
 
     if (readyState === 'complete') {
       // If we are already loaded we can go ahead and refresh.
-      this.refreshSizes();
+      this.processRecalculate();
     } else {
       // Otherwise refresh the breakpoints when the dom is ready and when everything is loaded.
       if (readyState !== 'interactive') {
-        this.window.addEventListener('DOMContentLoaded', this.bindings.refreshSizes);
+        this.window.addEventListener('DOMContentLoaded', this.bindings.processRecalculate);
       }
 
-      this.window.addEventListener('load', this.bindings.refreshSizes);
+      this.window.addEventListener('load', this.bindings.processRecalculate);
     }
 
-    this.window.addEventListener('resize', this.bindings.onWindowResize);
+    this.window.addEventListener('resize', this.bindings.processResize);
 
     // Monitor the head element for changes to detect any stylesheets that are added after load.
     const headNode = this.window.document.querySelector('head');
@@ -72,22 +56,27 @@ export default class ResizeMonitor {
   }
 
   public stop(): void {
-    this.window.removeEventListener('resize', this.bindings.onWindowResize);
-    this.window.removeEventListener('DOMContentLoaded', this.bindings.refreshSizes);
-    this.window.removeEventListener('load', this.bindings.refreshSizes);
+    this.window.removeEventListener('resize', this.bindings.processResize);
+    this.window.removeEventListener('DOMContentLoaded', this.bindings.processRecalculate);
+    this.window.removeEventListener('load', this.bindings.processRecalculate);
 
     this.headObservers.forEach((observer) => observer.disconnect());
   }
 
-  public refreshSizes(): void {
-    this.overflowMenus.forEach((menu) => {
-      menu.refreshSizes();
-      menu.refreshItems();
-    });
+  public onRecalculateSizes(callback: () => void): void {
+    this.recalculateCallbacks.push(callback);
   }
 
-  private onWindowResize(): void {
-    this.overflowMenus.forEach((menu) => menu.refreshItems());
+  private processRecalculate(): void {
+    this.recalculateCallbacks.forEach((callback) => callback());
+  }
+
+  public onResize(callback: () => void): void {
+    this.resizeCallbacks.push(callback);
+  }
+
+  private processResize(): void {
+    this.resizeCallbacks.forEach((callback) => callback());
   }
 
   // noinspection JSMethodCanBeStatic
@@ -105,7 +94,7 @@ export default class ResizeMonitor {
         // If a link or style tag are added we wait for them to load to refresh.  We also need to
         // re-listen for font loading in case the stylesheet loaded new items
         node.addEventListener('load', () => {
-          this.refreshSizes();
+          this.processRecalculate();
           this.monitorFonts();
         });
       });
@@ -121,7 +110,7 @@ export default class ResizeMonitor {
 
   private monitorFonts(): void {
     if (this.documentFonts && this.documentFonts.status !== 'loaded') {
-      this.documentFonts.ready.then(this.bindings.refreshSizes);
+      this.documentFonts.ready.then(this.bindings.processRecalculate);
     }
   }
 }
