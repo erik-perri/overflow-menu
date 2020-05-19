@@ -65,6 +65,7 @@ if (readyState === 'complete' || readyState === 'interactive') {
 
 export default {
   OverflowMenu,
+  ResizeMonitor,
   GetResizeMonitor: (): ResizeMonitor | undefined => monitor,
   FindMenu: (element: HTMLElement): OverflowMenuInterface | undefined => menus.find(
     (i) => i.element === element,
