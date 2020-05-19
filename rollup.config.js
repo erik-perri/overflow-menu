@@ -3,6 +3,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import babel from '@rollup/plugin-babel';
 import replace from 'rollup-plugin-replace';
 import typescript from 'rollup-plugin-typescript2';
+import del from 'rollup-plugin-delete'
 import { terser } from 'rollup-plugin-terser';
 import { eslint } from 'rollup-plugin-eslint';
 import pkg from './package.json';
@@ -26,6 +27,9 @@ export default {
   external: [],
 
   plugins: [
+    // Clear the dist directory before build
+    del({ targets: 'dist/*' }),
+
     // Allows node_modules resolution
     resolve({ extensions }),
 
