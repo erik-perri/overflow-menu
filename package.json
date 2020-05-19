@@ -11,6 +11,9 @@
   "browser": "dist/overflow-menu.umd.js",
   "minified": "dist/overflow-menu.umd.min.js",
   "types": "dist/types/index.d.ts",
+  "browserslist": [
+    "defaults"
+  ],
   "dependencies": {
     "@types/css-font-loading-module": "^0.0.4"
   },

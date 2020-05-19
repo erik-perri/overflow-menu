@@ -1,3 +1,10 @@
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
+Number.isNaN = Number.isNaN || function isNaN(input): boolean {
+  // The following works because NaN is the only value in javascript which is not equal to itself.
+  // eslint-disable-next-line no-self-compare
+  return typeof input === 'number' && input !== input;
+};
+
 function getStyleSum(element: HTMLElement, properties: string[]): number {
   const computedStyle = window.getComputedStyle(element);
   let sum = 0;

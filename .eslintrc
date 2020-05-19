@@ -22,5 +22,10 @@
         ]
       }
     ]
+  },
+  "settings": {
+    "polyfills": [
+      "Number.isNaN"
+    ]
   }
 }
