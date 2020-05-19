@@ -1,6 +1,12 @@
 {
   "name": "overflow-menu",
+  "description": "A library to move menu items into an overflow menu when they will not fit on one line.",
+  "version": "1.0.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/erik-perri/overflow-menu.git"
+  },
   "scripts": {
     "lint": "eslint --ext .ts src/*",
     "watch": "rollup -c --watch",
