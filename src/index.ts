@@ -29,12 +29,12 @@ const createMenus = (): void => {
         return;
       }
 
-      const menu = new OverflowMenu(
-        htmlElement,
-        Array.prototype.slice.call(htmlElement.querySelectorAll(menuItemSelector)),
-        overflowContainer as HTMLElement,
-        overflowItem as HTMLElement,
-      );
+      const menu = new OverflowMenu({
+        itemContainer: htmlElement,
+        itemSelector: menuItemSelector,
+        overflowItem: overflowItem as HTMLElement,
+        overflowContainer: overflowContainer as HTMLElement,
+      });
 
       menus.push({ menu, element: htmlElement });
     });

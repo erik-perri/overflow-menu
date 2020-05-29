@@ -1,26 +1,124 @@
 import { getInsideWidth, getOutsideWidth } from './SizeCalculation';
 
 export interface OverflowMenuInterface {
+  /**
+   * Calculates the container width and moves items that will not fit to the overflow menu.  Item
+   * sizes are not calculated here, if item sizes need to be updated call {@link refreshSizes}
+   * first.
+   */
   refreshItems(): void;
 
+  /**
+   * Calculates the item sizes and stores them for use in {@link refreshItems}.
+   */
   refreshSizes(): void;
 }
 
-interface MenuBreakpoints {
+export interface OverflowMenuOptions {
+  /**
+   * The container containing the initial menu elements.  Items will be removed from and placed
+   * inside this.
+   */
+  itemContainer: HTMLElement;
+
+  /**
+   * The selector to use when looking for menu items.  Only children of {@link itemContainer} will
+   * be matched.
+   */
+  itemSelector: string;
+
+  /**
+   * The "More Items" menu item.  This will be shown and hidden automatically using
+   * {@link overflowActiveClass}.
+   */
+  overflowItem: HTMLElement;
+
+  /**
+   * The overflow container.  Items will be moved between this and {@link itemContainer}.
+   */
+  overflowContainer: HTMLElement;
+
+  /**
+   * The class to set on {@link overflowItem} when it is visible.
+   */
+  overflowActiveClass?: string;
+
+  /**
+   * The function used to calculate the container width.  By default, this calculates the inner
+   * width of {@link itemContainer} rounded down.
+   *
+   * @param element
+   * @return number
+   */
+  calculateContainerWidth?: (element: HTMLElement) => number;
+
+  /**
+   * The function used to calculate the item widths.  By default, this calculates the outer width of
+   * {@link itemContainer} rounded up.
+   *
+   * @param element
+   * @return number
+   */
+  calculateItemWidth?: (element: HTMLElement) => number;
+
+  /**
+   * The function used to hide the overflow item.  By default, this adds {@link overflowActiveClass}
+   * to the class list.
+   *
+   * @param element
+   */
+  showOverflowItem?: (element: HTMLElement) => void;
+
+  /**
+   * The function used to hide the overflow item.  By default, this removes
+   * {@link overflowActiveClass} from the class list.
+   *
+   * @param element
+   */
+  hideOverflowItem?: (element: HTMLElement) => void;
+
+  /**
+   * The function used to find items.  By default, this searches for children of
+   * {@link itemContainer} using {@link itemSelector}.  An array must be returned, if using
+   * querySelectorAll the return should be passed through Array.prototype.slice.call first.
+   *
+   * @param selector
+   * @return HTMLElement[]
+   */
+  findItems?: (selector: string) => HTMLElement[];
+}
+
+export interface MenuBreakpoints {
   element: HTMLElement;
   maxWidth: number;
 }
 
 export class OverflowMenu implements OverflowMenuInterface {
-  private readonly itemContainer: HTMLElement;
+  private readonly options: OverflowMenuOptions;
 
-  private readonly items: HTMLElement[];
+  // noinspection JSUnusedGlobalSymbols -- They are not unused, they are merged in constructor
+  private readonly defaultOptions = {
+    overflowActiveClass: 'overflow-active',
 
-  private readonly overflowItem: HTMLElement;
+    calculateContainerWidth: (element: HTMLElement): number => Math.floor(getInsideWidth(element)),
+    calculateItemWidth: (element: HTMLElement): number => Math.ceil(getOutsideWidth(element)),
 
-  private readonly overflowContainer: HTMLElement;
+    showOverflowItem: (element: Element): void => {
+      if (this.options.overflowActiveClass) {
+        element.classList.add(this.options.overflowActiveClass);
+      }
+    },
 
-  private readonly overflowActiveClass: string;
+    hideOverflowItem: (element: Element): void => {
+      if (this.options.overflowActiveClass) {
+        element.classList.remove(this.options.overflowActiveClass);
+      }
+    },
+
+    findItems: (selector: string): HTMLElement[] => Array.prototype.slice.call(
+      this.options.itemContainer.querySelectorAll(selector),
+    ),
+  };
 
   private breakpoints: MenuBreakpoints[] = [];
 
@@ -30,25 +128,24 @@ export class OverflowMenu implements OverflowMenuInterface {
 
   private isOverflowing = false;
 
-  constructor(
-    itemContainer: HTMLElement,
-    items: HTMLElement[],
-    overflowContainer: HTMLElement,
-    overflowItem: HTMLElement,
-    overflowActiveClass = 'overflow-active',
-  ) {
-    this.itemContainer = itemContainer;
-    this.items = items;
-    this.overflowContainer = overflowContainer;
-    this.overflowItem = overflowItem;
-    this.overflowActiveClass = overflowActiveClass;
-    this.isHidden = itemContainer.offsetWidth === 0;
+  constructor(options: OverflowMenuOptions) {
+    this.options = { ...this.defaultOptions, ...options };
+
+    this.isHidden = this.options.itemContainer.offsetWidth === 0;
   }
 
   public refreshItems(): void {
-    // We round the container width down and the element widths up.  This will ensure we put items
-    // in the overflow container before they cause a line break due to the width.
-    let containerWidth = Math.floor(getInsideWidth(this.itemContainer));
+    const {
+      calculateContainerWidth,
+      showOverflowItem,
+      hideOverflowItem,
+    } = this.options;
+
+    if (!calculateContainerWidth || !showOverflowItem || !hideOverflowItem) {
+      return;
+    }
+
+    let containerWidth = calculateContainerWidth(this.options.itemContainer);
 
     // If the element visibility changes we need to recalculate the widths.  If we don't and the
     // menu started hidden all of the widths will be set to 0.
@@ -56,7 +153,7 @@ export class OverflowMenu implements OverflowMenuInterface {
     if (itemContainerIsHidden !== this.isHidden) {
       this.isHidden = itemContainerIsHidden;
 
-      // We only need to recalculate if we're actually being shown.
+      // We only need to recalculate if we're being shown.
       if (!itemContainerIsHidden) {
         this.refreshSizes();
       }
@@ -74,7 +171,7 @@ export class OverflowMenu implements OverflowMenuInterface {
     // still fit.  We check against the reversed array so we are comparing the highest maxWidth
     // first.
     this.isOverflowing = reversedBreakpoints.find(
-      ({ maxWidth }) => maxWidth >= containerWidth,
+      ({ maxWidth }) => maxWidth > containerWidth,
     ) !== undefined;
 
     // If we are overflowing we need to subtract the overflow item width from the container to
@@ -86,55 +183,74 @@ export class OverflowMenu implements OverflowMenuInterface {
     // When adding we loop through the breakpoints in reverse order so we can only insert what is
     // needed and maintain the correct item order.
     reversedBreakpoints.forEach(({ element, maxWidth }) => {
-      if (maxWidth >= containerWidth && element.parentElement !== this.overflowContainer) {
-        this.overflowContainer.insertBefore(element, this.overflowContainer.firstChild);
+      if (maxWidth > containerWidth && element.parentElement !== this.options.overflowContainer) {
+        this.options.overflowContainer.insertBefore(
+          element,
+          this.options.overflowContainer.firstChild,
+        );
       }
     });
 
     // When removing we don't need to reverse since they will always be removed in order.
     this.breakpoints.forEach(({ element, maxWidth }) => {
-      if (maxWidth < containerWidth && element.parentElement === this.overflowContainer) {
-        this.itemContainer.insertBefore(element, this.overflowItem);
+      if (maxWidth <= containerWidth && element.parentElement === this.options.overflowContainer) {
+        this.options.itemContainer.insertBefore(element, this.options.overflowItem);
       }
     });
 
     if (this.isOverflowing) {
-      this.overflowItem.classList.add(this.overflowActiveClass);
+      showOverflowItem(this.options.overflowItem);
     } else {
-      this.overflowItem.classList.remove(this.overflowActiveClass);
+      hideOverflowItem(this.options.overflowItem);
     }
   }
 
   public refreshSizes(): void {
-    // Move any known items back into the root element so the size is calculated properly.
-    this.breakpoints.map((info) => this.itemContainer.insertBefore(
-      info.element,
-      this.overflowItem,
-    ));
+    const {
+      calculateItemWidth,
+      findItems,
+      showOverflowItem,
+      hideOverflowItem,
+    } = this.options;
 
-    this.breakpoints = OverflowMenu.calculateBreakpoints(this.items.filter(
-      (item: HTMLElement) => item !== this.overflowItem,
-    ));
-
-    // Show the overflow menu item so we can calculate it's size properly.
-    if (!this.isOverflowing) {
-      this.overflowItem.classList.add(this.overflowActiveClass);
+    if (!calculateItemWidth || !findItems || !showOverflowItem || !hideOverflowItem) {
+      return;
     }
 
-    this.overflowItemWidth = Math.ceil(getOutsideWidth(this.overflowItem));
+    // Move any known items back into the root element so the size is calculated properly.
+    this.breakpoints.map((info) => this.options.itemContainer.insertBefore(
+      info.element,
+      this.options.overflowItem,
+    ));
+
+    this.breakpoints = this.calculateBreakpoints(findItems(this.options.itemSelector).filter(
+      (item: HTMLElement) => item !== this.options.overflowItem,
+    ));
+
+    // Make sure the overflow menu is visible so we can calculate it's size properly.
+    if (!this.isOverflowing) {
+      showOverflowItem(this.options.overflowItem);
+    }
+
+    this.overflowItemWidth = calculateItemWidth(this.options.overflowItem);
 
     if (!this.isOverflowing) {
-      this.overflowItem.classList.remove(this.overflowActiveClass);
+      hideOverflowItem(this.options.overflowItem);
     }
   }
 
-  private static calculateBreakpoints(menuItems: HTMLElement[]): MenuBreakpoints[] {
-    const breakpoints: MenuBreakpoints[] = [];
+  private calculateBreakpoints(menuItems: HTMLElement[]): MenuBreakpoints[] {
+    const { calculateItemWidth } = this.options;
 
+    if (!calculateItemWidth) {
+      return [];
+    }
+
+    const breakpoints: MenuBreakpoints[] = [];
     let currentMaxWidth = 0;
 
     menuItems.forEach((element) => {
-      const elementWidth = Math.ceil(getOutsideWidth(element));
+      const elementWidth = calculateItemWidth(element);
       currentMaxWidth += elementWidth;
 
       breakpoints.push({ element, maxWidth: currentMaxWidth });
