@@ -1,5 +1,16 @@
 import { getInsideWidth, getOutsideWidth } from './SizeCalculation';
 
+export interface OverflowMenuInterface {
+  refreshItems(): void;
+
+  refreshSizes(): void;
+}
+
+interface MenuBreakpoints {
+  element: HTMLElement;
+  maxWidth: number;
+}
+
 export class OverflowMenu implements OverflowMenuInterface {
   private readonly itemContainer: HTMLElement;
 
@@ -131,15 +142,4 @@ export class OverflowMenu implements OverflowMenuInterface {
 
     return breakpoints;
   }
-}
-
-export interface OverflowMenuInterface {
-  refreshItems(): void;
-
-  refreshSizes(): void;
-}
-
-interface MenuBreakpoints {
-  element: HTMLElement;
-  maxWidth: number;
 }
