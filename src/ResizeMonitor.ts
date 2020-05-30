@@ -45,7 +45,7 @@ export default class ResizeMonitor {
       // If we are already loaded we can go ahead and refresh.
       this.processRecalculate();
     } else {
-      // Otherwise refresh the breakpoints when the dom is ready and when everything is loaded.
+      // Otherwise recalculate when the dom is ready and when everything is loaded.
       if (readyState !== 'interactive') {
         this.window.addEventListener('DOMContentLoaded', this.bindings.processRecalculate);
       }
