@@ -6,10 +6,10 @@ export interface OverflowMenuInterface {
    * sizes are not calculated here, if item sizes need to be updated call {@link refreshSizes}
    * first.
    */
-  refreshItems(): void;
+  refreshMenu(): void;
 
   /**
-   * Calculates the item sizes and stores them for use in {@link refreshItems}.
+   * Calculates the item sizes and stores them for use in {@link refreshMenu}.
    */
   refreshSizes(): void;
 }
@@ -134,7 +134,7 @@ export class OverflowMenu implements OverflowMenuInterface {
     this.isHidden = this.options.itemContainer.offsetWidth === 0;
   }
 
-  public refreshItems(): void {
+  public refreshMenu(): void {
     const {
       calculateContainerWidth,
       showOverflowItem,

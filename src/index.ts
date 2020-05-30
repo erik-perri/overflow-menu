@@ -10,12 +10,12 @@ const monitor: ResizeMonitor = new ResizeMonitor(window);
 monitor.onRecalculateSizes((): void => {
   menus.forEach((info) => {
     info.menu.refreshSizes();
-    info.menu.refreshItems();
+    info.menu.refreshMenu();
   });
 });
 
 monitor.onResize((): void => {
-  menus.forEach((info) => info.menu.refreshItems());
+  menus.forEach((info) => info.menu.refreshMenu());
 });
 
 const createMenus = (): void => {
