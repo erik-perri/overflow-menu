@@ -128,7 +128,7 @@ export default class ResizeMonitor {
 
   private monitorFonts(): void {
     if (this.documentFonts && this.documentFonts.status !== 'loaded') {
-      this.documentFonts.ready.then(this.bindings.processRecalculate);
+      void this.documentFonts.ready.then(this.bindings.processRecalculate);
     }
   }
 }

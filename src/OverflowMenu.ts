@@ -120,7 +120,7 @@ export class OverflowMenu implements OverflowMenuInterface {
     findItems: (selector: string): HTMLElement[] =>
       Array.prototype.slice.call(
         this.options.itemContainer.querySelectorAll(selector)
-      ),
+      ) as HTMLElement[],
   };
 
   private breakpoints: MenuBreakpoints[] = [];
