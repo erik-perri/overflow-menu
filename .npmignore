@@ -1,8 +1,0 @@
-.idea
-src
-
-.babelrc
-.eslintrc
-package-lock.json
-rollup.config.js
-tsconfig.json

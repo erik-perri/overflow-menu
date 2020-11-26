@@ -12,6 +12,9 @@
     "watch": "rollup -c --watch",
     "build": "rollup -c --environment PRODUCTION"
   },
+  "files": [
+    "/dist"
+  ],
   "main": "dist/overflow-menu.cjs.js",
   "module": "dist/overflow-menu.esm.js",
   "browser": "dist/overflow-menu.umd.js",
