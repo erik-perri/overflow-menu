@@ -47,7 +47,10 @@ export default class ResizeMonitor {
     } else {
       // Otherwise recalculate when the dom is ready and when everything is loaded.
       if (readyState !== 'interactive') {
-        this.window.addEventListener('DOMContentLoaded', this.bindings.processRecalculate);
+        this.window.addEventListener(
+          'DOMContentLoaded',
+          this.bindings.processRecalculate
+        );
       }
 
       this.window.addEventListener('load', this.bindings.processRecalculate);
@@ -69,7 +72,10 @@ export default class ResizeMonitor {
     this.started = false;
 
     this.window.removeEventListener('resize', this.bindings.processResize);
-    this.window.removeEventListener('DOMContentLoaded', this.bindings.processRecalculate);
+    this.window.removeEventListener(
+      'DOMContentLoaded',
+      this.bindings.processRecalculate
+    );
     this.window.removeEventListener('load', this.bindings.processRecalculate);
 
     this.headObservers.forEach((observer) => observer.disconnect());

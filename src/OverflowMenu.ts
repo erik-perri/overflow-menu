@@ -100,8 +100,10 @@ export class OverflowMenu implements OverflowMenuInterface {
   private readonly defaultOptions = {
     overflowActiveClass: 'overflow-active',
 
-    calculateContainerWidth: (element: HTMLElement): number => Math.floor(getInsideWidth(element)),
-    calculateItemWidth: (element: HTMLElement): number => Math.ceil(getOutsideWidth(element)),
+    calculateContainerWidth: (element: HTMLElement): number =>
+      Math.floor(getInsideWidth(element)),
+    calculateItemWidth: (element: HTMLElement): number =>
+      Math.ceil(getOutsideWidth(element)),
 
     showOverflowItem: (element: Element): void => {
       if (this.options.overflowActiveClass) {
@@ -115,9 +117,10 @@ export class OverflowMenu implements OverflowMenuInterface {
       }
     },
 
-    findItems: (selector: string): HTMLElement[] => Array.prototype.slice.call(
-      this.options.itemContainer.querySelectorAll(selector),
-    ),
+    findItems: (selector: string): HTMLElement[] =>
+      Array.prototype.slice.call(
+        this.options.itemContainer.querySelectorAll(selector)
+      ),
   };
 
   private breakpoints: MenuBreakpoints[] = [];
@@ -170,9 +173,9 @@ export class OverflowMenu implements OverflowMenuInterface {
     // needed. If we always subtract it we can end up switching to the overflow when an item would
     // still fit.  We check against the reversed array so we are comparing the highest maxWidth
     // first.
-    this.isOverflowing = reversedBreakpoints.find(
-      ({ maxWidth }) => maxWidth > containerWidth,
-    ) !== undefined;
+    this.isOverflowing =
+      reversedBreakpoints.find(({ maxWidth }) => maxWidth > containerWidth) !==
+      undefined;
 
     // If we are overflowing we need to subtract the overflow item width from the container to
     // account for it being visible.
@@ -183,18 +186,27 @@ export class OverflowMenu implements OverflowMenuInterface {
     // When adding we loop through the breakpoints in reverse order so we can only insert what is
     // needed and maintain the correct item order.
     reversedBreakpoints.forEach(({ element, maxWidth }) => {
-      if (maxWidth > containerWidth && element.parentElement !== this.options.overflowContainer) {
+      if (
+        maxWidth > containerWidth &&
+        element.parentElement !== this.options.overflowContainer
+      ) {
         this.options.overflowContainer.insertBefore(
           element,
-          this.options.overflowContainer.firstChild,
+          this.options.overflowContainer.firstChild
         );
       }
     });
 
     // When removing we don't need to reverse since they will always be removed in order.
     this.breakpoints.forEach(({ element, maxWidth }) => {
-      if (maxWidth <= containerWidth && element.parentElement === this.options.overflowContainer) {
-        this.options.itemContainer.insertBefore(element, this.options.overflowItem);
+      if (
+        maxWidth <= containerWidth &&
+        element.parentElement === this.options.overflowContainer
+      ) {
+        this.options.itemContainer.insertBefore(
+          element,
+          this.options.overflowItem
+        );
       }
     });
 
@@ -213,19 +225,28 @@ export class OverflowMenu implements OverflowMenuInterface {
       hideOverflowItem,
     } = this.options;
 
-    if (!calculateItemWidth || !findItems || !showOverflowItem || !hideOverflowItem) {
+    if (
+      !calculateItemWidth ||
+      !findItems ||
+      !showOverflowItem ||
+      !hideOverflowItem
+    ) {
       return;
     }
 
     // Move any known items back into the root element so the size is calculated properly.
-    this.breakpoints.map((info) => this.options.itemContainer.insertBefore(
-      info.element,
-      this.options.overflowItem,
-    ));
+    this.breakpoints.map((info) =>
+      this.options.itemContainer.insertBefore(
+        info.element,
+        this.options.overflowItem
+      )
+    );
 
-    this.breakpoints = this.calculateBreakpoints(findItems(this.options.itemSelector).filter(
-      (item: HTMLElement) => item !== this.options.overflowItem,
-    ));
+    this.breakpoints = this.calculateBreakpoints(
+      findItems(this.options.itemSelector).filter(
+        (item: HTMLElement) => item !== this.options.overflowItem
+      )
+    );
 
     // Make sure the overflow menu is visible so we can calculate it's size properly.
     if (!this.isOverflowing) {

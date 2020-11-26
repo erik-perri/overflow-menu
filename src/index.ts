@@ -19,35 +19,40 @@ monitor.onResize((): void => {
 });
 
 const createMenus = (): void => {
-  window.document.querySelectorAll(itemContainerSelector).forEach((element: Element) => {
-    const htmlElement = element as HTMLElement;
+  window.document
+    .querySelectorAll(itemContainerSelector)
+    .forEach((element: Element) => {
+      const htmlElement = element as HTMLElement;
 
-    const menuItemSelector: string = htmlElement.dataset.overflowMenuItems || '';
-    if (!menuItemSelector) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Missing selector', htmlElement);
+      const menuItemSelector: string =
+        htmlElement.dataset.overflowMenuItems || '';
+      if (!menuItemSelector) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Missing selector', htmlElement);
+        }
+        return;
       }
-      return;
-    }
 
-    const overflowItem = htmlElement.querySelector(overflowItemSelector);
-    const overflowContainer = htmlElement.querySelector(overflowContainerSelector);
-    if (!overflowItem || !overflowContainer) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Missing overflow child', element);
+      const overflowItem = htmlElement.querySelector(overflowItemSelector);
+      const overflowContainer = htmlElement.querySelector(
+        overflowContainerSelector
+      );
+      if (!overflowItem || !overflowContainer) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Missing overflow child', element);
+        }
+        return;
       }
-      return;
-    }
 
-    const menu = new OverflowMenu({
-      itemContainer: htmlElement,
-      itemSelector: menuItemSelector,
-      overflowItem: overflowItem as HTMLElement,
-      overflowContainer: overflowContainer as HTMLElement,
+      const menu = new OverflowMenu({
+        itemContainer: htmlElement,
+        itemSelector: menuItemSelector,
+        overflowItem: overflowItem as HTMLElement,
+        overflowContainer: overflowContainer as HTMLElement,
+      });
+
+      menus.push({ menu, element: htmlElement });
     });
-
-    menus.push({ menu, element: htmlElement });
-  });
 
   if (menus.length) {
     monitor.start();
@@ -66,7 +71,6 @@ export default {
   OverflowMenu,
   ResizeMonitor,
   GetResizeMonitor: (): ResizeMonitor | undefined => monitor,
-  FindMenu: (element: HTMLElement): OverflowMenuInterface | undefined => menus.find(
-    (i) => i.element === element,
-  )?.menu,
+  FindMenu: (element: HTMLElement): OverflowMenuInterface | undefined =>
+    menus.find((i) => i.element === element)?.menu,
 };
